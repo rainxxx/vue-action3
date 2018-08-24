@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>标签页组件</title>
+		<link rel="stylesheet" href="css/reset.css" />
+		<script type="text/javascript" src="js/vue.js" ></script>
+		<style type="text/css">
+			.tabs{border: solid 1px lightgray;padding: 5px;}
+			.tabs .tab-title-list{border-bottom: solid 1px lightgray;}
+			.tabs .tab-title-list>div{float: left;padding: 6px 12px;cursor: pointer;margin-right:5px;border: solid 1px lightgray;border-bottom: 0px;}
+			.tabs .tab-title-list>div:hover{color: #409eff;}
+			.tabs .tab-title-list::after{content: '';display: block;clear: both;}
+			.tabs .tab-title-list .active{border-bottom: 0px;border-top: solid 2px #409eff;color: #409eff;}
+			
+			.pane{padding: 50px 5px;}
+			.pane-close{display: inline-block;width: 15px;text-align: center;border-radius: 15px;}
+			.pane-close:hover{background: #e6e6e6;}
+			
+			.x-select{padding: 5px;border-radius: 2px;border-color: darkgray;}
+			.x-select>option{padding: 5px;}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<tabs v-model="currentTab" >
+				<pane name="user" label="用户管理" :closable="true">用户管理相关内容</pane>
+				<pane name="config" label="配置管理" >配置管理相关内容</pane>
+				<pane name="role" label="角色管理">角色管理相关内容</pane>
+			</tabs>
+			
+			<h3>
+				选择显示哪个Tab ： 
+				<select v-model="currentTab" class="x-select">
+					<option value="user">用户管理</option>
+					<option value="config">配置管理</option>
+					<option value="role">角色管理</option>
+				</select> 
+			</h3>
+			
+		</div>
+		
+		<script type="text/x-template" id="pane">
+			<div class="pane" v-if="exist" v-show="isActive">
+				<slot></slot>
+			</div>	
+		</script>
+		
+		<script type="text/x-template" id="tabs">
+			<div class="tabs">
+				<div class="tab-title-list">
+					<slot v-for="(nav,index) in navList" name="nav" >
+						<div :class="isActive(nav)" class="tab-title"  @click="updateState(index)">
+							<span>{{nav.label}}</span>
+							<span v-if="nav.closable" class="pane-close" @click="handleClose(index)">x</span>
+						</div>
+					</slot>
+				</div>
+				<div class="tab-content">
+					<slot ></slot>
+				</div>
+			</div>
+		</script>
+		
+		
+		<script type="text/javascript">
+			Vue.component('pane',{
+				template: '#pane',
+				props: {
+					label: {
+					
+					},
+					name: {
+						default: ''
+					},
+					closable: {
+						default: false
+					}
+				},
+			    mounted: function(){
+		    		this.$parent.updateNav();
+			    },
+			    data: function(){
+			    	return{
+			    		exist: true
+			    	}
+			    },
+			    computed:{
+			    	isActive(){
+			    		var show = this.$parent.currentValue == this.name;
+			    		return show;
+			    	}
+			    },
+			    beforeDestroy(){
+					alert(this.name);	
+				}
+			});
+				
+			Vue.component('tabs',{
+				template: '#tabs',
+				props: {
+					value: {
+						default: 0
+					}
+				},
+				data(){
+					return{
+						navList:[],
+						currentValue: this.value || 0
+					}
+				},
+				methods: {
+					getPanes(){
+						return this.$children.filter(item => item.$options.name == 'pane')
+					},
+					updateNav(){
+						var _this = this;
+						this.navList = [];
+						var panes = this.getPanes();
+						panes.forEach(function(item,index){
+							_this.navList.push({name: (item.name || index),label: item.label,closable: item.closable});
+							if(!item.name) item.name = index;
+							
+						})
+					},
+					updateState(index){
+						this.currentValue = this.navList[index].name;
+					},
+					isActive(item){
+						return [{'active': this.currentValue == item.name}]
+					},
+					handleClose(index){
+						debugger;
+						this.navList.splice(index,1);
+						this.getPanes()[index].exist = false;
+					}
+				},
+				watch: {
+					value(val){
+						this.currentValue = val;
+					},
+					currentValue(val){
+						this.$emit('input',val);
+					}
+				}
+			});
+			
+			var app = new Vue({
+				el: '#app',
+				data: {
+					currentTab: 'config'
+				}
+			})
+		</script>		
+	</body>
+</html>
